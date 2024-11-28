@@ -1,1 +1,214 @@
+1. add_student.php:
+<?php
+include 'connect.php';
+
+$data = json_decode(file_get_contents('php://input'), true);
+
+$name = $data['name'];
+$email = $data['email'];
+$course = $data['course'];
+$age = $data['age'];
+
+$sql = "INSERT INTO students (name, email, course, age) VALUES ('$name', '$email', '$course', $age)";
+if ($conn->query($sql)) {
+    echo json_encode(["message" => "Student added successfully"]);
+} else {
+    http_response_code(500);
+    echo json_encode(["message" => "Error: " . $conn->error]);
+}
+?>
+2.connect.php:
+<?php
+$host = 'localhost';
+$user = 'root';
+$password = ''; // Add your database password here
+$dbname = 'zubeenjoshi';
+
+$conn = new mysqli($host, $user, $password, $dbname);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+
+3.delect_student.php:
+<?php
+include 'connect.php';
+
+$data = json_decode(file_get_contents('php://input'), true);
+$id = $data['id'];
+
+$sql = "DELETE FROM students WHERE id = $id";
+if ($conn->query($sql)) {
+    echo json_encode(["message" => "Student deleted successfully"]);
+} else {
+    http_response_code(500);
+    echo json_encode(["message" => "Error: " . $conn->error]);
+}
+?>
+
+4.fetch_student:
+<?php
+include 'connect.php';
+
+$sql = "SELECT * FROM students";
+$result = $conn->query($sql);
+
+$students = [];
+while ($row = $result->fetch_assoc()) {
+    $students[] = $row;
+}
+
+echo json_encode($students);
+?>
+
+5.index.html:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Information System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Student Information System</h1>
+    <form id="studentForm">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="text" id="course" placeholder="Course" required>
+        <input type="number" id="age" placeholder="Age" required>
+        <button type="submit">Add Student</button>
+    </form>
+    <h2>Student List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Course</th>
+                <th>Age</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+    </table>
+    <script src="script.js"></script>
+</body>
+</html>
+
+6.script.js:
+document.getElementById('studentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const course = document.getElementById('course').value;
+    const age = document.getElementById('age').value;
+
+    const response = await fetch('add_student.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, course, age }),
+    });
+
+    if (response.ok) {
+        loadStudents();
+        e.target.reset();
+    } else {
+        alert('Error adding student');
+    }
+});
+
+async function loadStudents() {
+    const response = await fetch('fetch_students.php');
+    const students = await response.json();
+
+    const tableBody = document.getElementById('studentTable');
+    tableBody.innerHTML = '';
+
+    students.forEach((student) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${student.id}</td>
+            <td>${student.name}</td>
+            <td>${student.email}</td>
+            <td>${student.course}</td>
+            <td>${student.age}</td>
+            <td>
+                <button onclick="deleteStudent(${student.id})">Delete</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+async function deleteStudent(id) {
+    const response = await fetch('delete_student.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+    });
+
+    if (response.ok) {
+        loadStudents();
+    } else {
+        alert('Error deleting student');
+    }
+}
+
+// Load students on page load
+document.addEventListener('DOMContentLoaded', loadStudents);
+
+7.style.css:
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f4f4f9;
+}
+
+h1 {
+    color: #333;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+form input {
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+form button {
+    padding: 10px 15px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #218838;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+table th {
+    background-color: #007bff;
+    color: white;
+}
 
